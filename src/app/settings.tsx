@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Pressable } from "react-native";
+import { View, StyleSheet, Pressable, ActivityIndicator, Platform, Clipboard } from "react-native";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { PageFrame } from "@/components/page-frame";
 import { ThemedText } from "@/components/themed-text";
 import { useThingSpeak } from "@/hooks/use-thingspeak";
@@ -13,6 +14,97 @@ export default function SettingsScreen() {
   const theme = Colors[scheme === "dark" ? "dark" : "light"];
   const { config } = useThingSpeak();
   const [themeMode, setThemeModeState] = useState<ThemeMode>("system");
+
+  const { expoPushToken, pushStatus, pushError } = usePushNotifications();
+  const [testSending, setTestSending] = useState(false);
+  const [testStatus, setTestStatus] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleCopyToken = () => {
+    if (expoPushToken) {
+      Clipboard.setString(expoPushToken);
+      alert("Token copied to clipboard!");
+    }
+  };
+
+  const handleSendTestNotification = async () => {
+    setTestSending(true);
+    setTestStatus(null);
+
+    if (Platform.OS === "web") {
+      const BrowserNotification = (globalThis as any).Notification;
+      if (!BrowserNotification) {
+        setTestStatus({ success: false, message: "Browser notifications not supported." });
+        setTestSending(false);
+        return;
+      }
+
+      const showLocalNotification = () => {
+        new BrowserNotification("Smart Water Tank Test Alert", {
+          body: "This is a local browser notification test! Everything is working correctly.",
+        });
+        setTestStatus({ success: true, message: "Local browser notification triggered!" });
+        setTestSending(false);
+      };
+
+      if (BrowserNotification.permission === "granted") {
+        showLocalNotification();
+      } else if (BrowserNotification.permission !== "denied") {
+        try {
+          const permission = await BrowserNotification.requestPermission();
+          if (permission === "granted") {
+            showLocalNotification();
+          } else {
+            setTestStatus({ success: false, message: "Notification permission denied." });
+            setTestSending(false);
+          }
+        } catch (err: any) {
+          setTestStatus({ success: false, message: `Permission error: ${err.message}` });
+          setTestSending(false);
+        }
+      } else {
+        setTestStatus({ success: false, message: "Notification permission denied. Enable in site settings." });
+        setTestSending(false);
+      }
+      return;
+    }
+
+    if (!expoPushToken) {
+      setTestStatus({ success: false, message: "No push token available. Make sure notifications are ready." });
+      setTestSending(false);
+      return;
+    }
+
+    try {
+      const response = await fetch("https://exp.host/--/api/v2/push/send", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Accept-encoding": "gzip, deflate",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to: expoPushToken,
+          sound: "default",
+          title: "Smart Water Tank Test Alert",
+          body: "This is a test notification from your dashboard! Your device is successfully linked.",
+          data: { test: true },
+          channelId: "water-alerts",
+          priority: "high",
+        }),
+      });
+
+      const resData = await response.json();
+      if (response.ok && resData.data?.status !== "error") {
+        setTestStatus({ success: true, message: "Push notification request sent to Expo!" });
+      } else {
+        throw new Error(resData.data?.message || "Failed to send via Expo.");
+      }
+    } catch (err: any) {
+      setTestStatus({ success: false, message: `Failed: ${err.message}` });
+    } finally {
+      setTestSending(false);
+    }
+  };
 
   useEffect(() => {
     setThemeModeState(getThemeMode());
@@ -134,6 +226,112 @@ export default function SettingsScreen() {
           Use the dashboard settings modal to edit polling, fields, and channel configuration.
         </ThemedText>
       </View>
+
+      {/* Push Notifications Info & Test */}
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.backgroundElement,
+            borderColor: theme.backgroundSelected,
+            marginTop: Spacing.two,
+          },
+        ]}
+      >
+        <View style={styles.sectionHeader}>
+          <SymbolView
+            name={{ ios: "bell.fill", android: "notifications", web: "notifications" }}
+            size={16}
+            tintColor={theme.text}
+          />
+          <ThemedText type="smallBold" style={styles.sectionTitle}>Push Notifications</ThemedText>
+        </View>
+
+        <View style={styles.infoGroup}>
+          <ThemedText type="small" themeColor="textSecondary">Status</ThemedText>
+          <ThemedText type="smallBold" style={{ textTransform: "capitalize" }}>
+            {pushStatus}
+          </ThemedText>
+        </View>
+
+        {pushError && (
+          <View style={styles.infoGroup}>
+            <ThemedText type="small" style={{ color: "#ff4d4f" }}>Error</ThemedText>
+            <ThemedText type="small" style={{ color: "#ff4d4f" }}>{pushError}</ThemedText>
+          </View>
+        )}
+
+        <View style={styles.infoGroup}>
+          <ThemedText type="small" themeColor="textSecondary">Token</ThemedText>
+          {expoPushToken ? (
+            <View style={styles.tokenRow}>
+              <ThemedText type="code" style={styles.tokenText} numberOfLines={1} ellipsizeMode="middle">
+                {expoPushToken}
+              </ThemedText>
+              <Pressable
+                onPress={handleCopyToken}
+                style={({ pressed }) => [
+                  styles.copyButton,
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <SymbolView
+                  name={{ ios: "doc.on.doc.fill", android: "content_copy", web: "content_copy" }}
+                  size={14}
+                  tintColor={theme.text}
+                />
+              </Pressable>
+            </View>
+          ) : (
+            <ThemedText type="small" themeColor="textSecondary" style={{ fontStyle: "italic" }}>
+              {Platform.OS === "web"
+                ? "Not applicable on web (using native browser alerts)"
+                : "No token available"}
+            </ThemedText>
+          )}
+        </View>
+
+        <Pressable
+          onPress={handleSendTestNotification}
+          disabled={testSending}
+          style={({ pressed }) => [
+            styles.testButton,
+            { backgroundColor: "#1890ff" },
+            testSending && { opacity: 0.7 },
+            pressed && !testSending && { opacity: 0.8 },
+          ]}
+        >
+          {testSending ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <ThemedText type="smallBold" style={{ color: "#fff" }}>
+              Send Test Notification
+            </ThemedText>
+          )}
+        </Pressable>
+
+        {testStatus && (
+          <View
+            style={[
+              styles.testResultBox,
+              {
+                backgroundColor: testStatus.success ? "rgba(82, 196, 26, 0.1)" : "rgba(255, 77, 79, 0.1)",
+                borderColor: testStatus.success ? "#52c41a" : "#ff4d4f",
+              },
+            ]}
+          >
+            <ThemedText
+              type="small"
+              style={{
+                color: testStatus.success ? "#52c41a" : "#ff4d4f",
+                textAlign: "center",
+              }}
+            >
+              {testStatus.message}
+            </ThemedText>
+          </View>
+        )}
+      </View>
     </PageFrame>
   );
 }
@@ -173,5 +371,39 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: Spacing.four,
     gap: Spacing.two,
+  },
+  infoGroup: {
+    gap: 2,
+    marginTop: Spacing.one,
+  },
+  tokenRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(150, 150, 150, 0.1)",
+    borderRadius: 8,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    gap: Spacing.two,
+  },
+  tokenText: {
+    flex: 1,
+    fontSize: 12,
+  },
+  copyButton: {
+    padding: Spacing.one,
+  },
+  testButton: {
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: Spacing.two,
+  },
+  testResultBox: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: Spacing.two,
+    marginTop: Spacing.two,
   },
 });

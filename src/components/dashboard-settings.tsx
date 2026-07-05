@@ -35,7 +35,7 @@ export function DashboardSettings({
   onSave,
 }: DashboardSettingsProps) {
   const scheme = useColorScheme();
-  const theme = Colors[scheme === "unspecified" || !scheme ? "light" : scheme];
+  const theme = Colors[scheme === "dark" ? "dark" : "light"];
 
   // Local state for form values
   const [isDemoMode, setIsDemoMode] = useState(config.isDemoMode);

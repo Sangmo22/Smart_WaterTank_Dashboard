@@ -6,7 +6,7 @@ import { AnimatedSplashOverlay } from "@/components/animated-icon";
 SplashScreen.preventAutoHideAsync();
 
 import { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Platform, View } from "react-native";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { registerForPushNotificationsAsync } from "@/services/notification.service";
@@ -47,7 +47,8 @@ function RootLayoutContent() {
             return {
               shouldPlaySound: true,
               shouldSetBadge: false,
-              shouldShowAlert: true,
+              shouldShowBanner: true,
+              shouldShowList: true,
             };
           },
         });

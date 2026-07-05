@@ -54,3 +54,38 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+## Phone push notifications for low source tank
+
+This project uses `expo-notifications` for native phone notifications. For
+Android push notifications on recent Expo SDKs, use a development build instead
+of Expo Go.
+
+1. Create/link an EAS project so Expo can provide a push project ID:
+
+   ```bash
+   npx eas init
+   ```
+
+2. Build and install the native app on your phone:
+
+   ```bash
+   npx eas build --profile development --platform android
+   ```
+
+3. Open the app on your phone and allow notification permission. The dashboard
+   will show an `ExponentPushToken[...]` value in the Phone Push Notifications
+   card.
+
+4. Copy `.env.local.example` to `.env.local`, paste that token into
+   `EXPO_PUSH_TOKEN`, and adjust ThingSpeak settings if needed.
+
+5. Keep the IoT monitor running on a computer/server:
+
+   ```bash
+   npm run notify:monitor
+   ```
+
+The monitor polls ThingSpeak and sends a phone push notification when the source
+tank level is below `8%`. It sends once when the tank enters the critical range
+and then repeats based on `ALERT_REMINDER_MS` while it remains critical.

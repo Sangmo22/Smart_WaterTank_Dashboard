@@ -1,18 +1,75 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
-
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { AnimatedSplashOverlay } from "@/components/animated-icon";
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
+import { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
+import * as Notifications from "expo-notifications";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { registerForPushNotificationsAsync } from "@/services/notification.service";
+import { AuthProvider, useAuth } from "@/state/auth-context";
+import { LoginScreen } from "@/components/login-screen";
+import { ThemedText } from "@/components/themed-text";
+import { Spacing } from "@/constants/theme";
+
+function RootLayoutContent() {
   const colorScheme = useColorScheme();
+  const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
+  const { user, isLoading } = useAuth();
+
+  useEffect(() => {
+    (async () => {
+      const token = await registerForPushNotificationsAsync();
+      setExpoPushToken(token);
+      if (token) {
+        await AsyncStorage.setItem("expoPushToken", token);
+      }
+    })();
+  }, []);
+
+  if (isLoading) {
+    const isDark = colorScheme === "dark";
+    return (
+      <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: isDark ? "#000000" : "#ffffff" }}>
+          <ActivityIndicator size="large" color="#1890ff" />
+          <ThemedText style={{ marginTop: Spacing.three }} type="smallBold">
+            Checking session...
+          </ThemedText>
+        </View>
+      </ThemeProvider>
+    );
+  }
+
+  if (!user) {
+    return (
+      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+        <LoginScreen />
+      </ThemeProvider>
+    );
+  }
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <AnimatedSplashOverlay />
-      <AppTabs />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="alerts" />
+        <Stack.Screen name="analytics" />
+        <Stack.Screen name="pump-settings" />
+        <Stack.Screen name="settings" />
+      </Stack>
     </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <RootLayoutContent />
+    </AuthProvider>
   );
 }

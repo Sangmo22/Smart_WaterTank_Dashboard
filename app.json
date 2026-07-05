@@ -17,7 +17,9 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.sangmooooo.WaterTankDashboard",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "static",
@@ -32,11 +34,24 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#1890ff",
+          "defaultChannel": "water-alerts"
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "06e6b11b-0ebb-4b0e-8229-d58178720195"
+      }
     }
   }
 }

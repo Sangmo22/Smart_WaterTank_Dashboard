@@ -21,13 +21,42 @@ function RootLayoutContent() {
   const { user, isLoading } = useAuth();
 
   useEffect(() => {
-    (async () => {
-      const token = await registerForPushNotificationsAsync();
-      setExpoPushToken(token);
-      if (token) {
-        await AsyncStorage.setItem("expoPushToken", token);
+    async function setup() {
+      if (Platform.OS === 'web') return;
+
+      try {
+        // 1) Request permissions
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status !== 'granted') {
+          console.log('Notification permission not granted');
+          return;
+        }
+
+        // 2) Get push token
+        const token = await Notifications.getExpoPushTokenAsync({
+          projectId: '06e6b11b-0ebb-4b0e-8229-d58178720195',
+        });
+        console.log('Push token:', token.data);
+        setExpoPushToken(token.data);
+        await AsyncStorage.setItem('expoPushToken', token.data);
+
+        // 3) Set up notification handler (optional but useful)
+        Notifications.setNotificationHandler({
+          handleNotification: async (notification) => {
+            console.log('Notification received:', notification);
+            return {
+              shouldPlaySound: true,
+              shouldSetBadge: false,
+              shouldShowAlert: true,
+            };
+          },
+        });
+      } catch (error) {
+        console.error('Failed to setup notifications:', error);
       }
-    })();
+    }
+
+    setup();
   }, []);
 
   if (isLoading) {

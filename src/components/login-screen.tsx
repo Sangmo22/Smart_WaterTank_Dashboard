@@ -9,6 +9,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
 import { SymbolView } from "expo-symbols";
 import { useAuth } from "@/state/auth-context";
@@ -38,6 +39,7 @@ export function LoginScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const [googleAccounts, setGoogleAccounts] = useState<{ email: string; name: string }[]>([
+    { email: "sangmolama29@gmail.com", name: "Sangmo Lama" },
     { email: "watertank.admin@gmail.com", name: "Water Tank Admin" },
     { email: "guest.user@gmail.com", name: "Guest User" },
   ]);
@@ -50,6 +52,7 @@ export function LoginScreen() {
         if (savedAccountsJson) {
           const parsed = JSON.parse(savedAccountsJson);
           const defaultAccounts = [
+            { email: "sangmolama29@gmail.com", name: "Sangmo Lama" },
             { email: "watertank.admin@gmail.com", name: "Water Tank Admin" },
             { email: "guest.user@gmail.com", name: "Guest User" },
           ];
@@ -433,153 +436,193 @@ export function LoginScreen() {
         <View style={styles.modalOverlay}>
           <View
             style={[
-              styles.googlePanel,
-              { backgroundColor: theme.background, borderColor: theme.backgroundSelected },
+              styles.googleCard,
+              { backgroundColor: "#ffffff" },
             ]}
           >
             {googleLoading ? (
               <View style={styles.googleLoadingContainer}>
                 <ActivityIndicator size="large" color="#4285F4" />
-                <ThemedText type="smallBold" style={{ marginTop: Spacing.three }}>
+                <ThemedText type="smallBold" style={{ marginTop: Spacing.three, color: "#3c4043" }}>
                   Connecting to Google Account...
                 </ThemedText>
               </View>
             ) : (
-              <ScrollView contentContainerStyle={styles.googlePanelContent}>
-                <View style={styles.googleHeader}>
-                  <View style={styles.googleLogo}>
-                    <ThemedText style={[styles.googleG, { color: "#000" }]}>G</ThemedText>
+              <View>
+                {/* Header bar: "Sign in with Google" */}
+                <View style={styles.googleCardHeader}>
+                  <View style={styles.googleCardHeaderLeft}>
+                    {/* Google G logo */}
+                    <View style={styles.googleMiniLogo}>
+                      <ThemedText style={styles.googleMiniG}>G</ThemedText>
+                    </View>
+                    <ThemedText style={styles.googleCardHeaderTitle}>Sign in with Google</ThemedText>
                   </View>
-                  <ThemedText type="subtitle" style={styles.googleTitle}>
-                    Sign in with Google
-                  </ThemedText>
-                  <ThemedText type="small" themeColor="textSecondary" style={styles.googleSubtitle}>
-                    to continue to Smart Water Tank Monitor
-                  </ThemedText>
+                  <Pressable
+                    onPress={() => {
+                      setGoogleModalVisible(false);
+                      setShowCustomGoogle(false);
+                    }}
+                    style={({ pressed }) => [
+                      styles.googleCardCloseBtn,
+                      pressed && { opacity: 0.7 },
+                    ]}
+                  >
+                    <SymbolView
+                      name={{ ios: "xmark", android: "close", web: "close" }}
+                      size={18}
+                      tintColor="#5f6368"
+                    />
+                  </Pressable>
                 </View>
+                <View style={styles.headerDivider} />
 
-                {!showCustomGoogle ? (
-                  <View style={styles.googleAccountsList}>
-                    {googleAccounts.map((acc, index) => {
-                      const initial = acc.name.charAt(0).toUpperCase();
-                      const avatarColors = ["#1890ff", "#52c41a", "#722ed1", "#eb2f96", "#fa8c16"];
-                      const avatarColor = avatarColors[index % avatarColors.length];
-
-                      return (
-                        <Pressable
-                          key={acc.email}
-                          onPress={() => handleGoogleSelect(acc.email, acc.name)}
-                          style={({ pressed }) => [
-                            styles.googleAccountItem,
-                            { borderColor: theme.backgroundSelected },
-                            pressed && { backgroundColor: theme.backgroundSelected },
-                          ]}
-                        >
-                          <View style={[styles.avatarCircle, { backgroundColor: avatarColor }]}>
-                            <ThemedText style={styles.avatarText}>{initial}</ThemedText>
-                          </View>
-                          <View style={styles.accountInfo}>
-                            <ThemedText type="smallBold">{acc.name}</ThemedText>
-                            <ThemedText type="small" themeColor="textSecondary">
-                              {acc.email}
-                            </ThemedText>
-                          </View>
-                        </Pressable>
-                      );
-                    })}
-
-                    {/* Use Another Account */}
-                    <Pressable
-                      onPress={() => setShowCustomGoogle(true)}
-                      style={({ pressed }) => [
-                        styles.googleAccountItem,
-                        { borderColor: theme.backgroundSelected },
-                        pressed && { backgroundColor: theme.backgroundSelected },
-                      ]}
-                    >
-                      <View style={[styles.avatarCircle, { backgroundColor: theme.backgroundSelected }]}>
-                        <SymbolView
-                          name={{ ios: "plus", android: "add", web: "add" }}
-                          size={20}
-                          tintColor={theme.text}
-                        />
-                      </View>
-                      <View style={styles.accountInfo}>
-                        <ThemedText type="smallBold">Use another account</ThemedText>
-                      </View>
-                    </Pressable>
-                  </View>
-                ) : (
-                  <View style={styles.customGoogleForm}>
-                    <ThemedText type="smallBold" style={{ marginBottom: Spacing.two }}>
-                      Enter custom Gmail account details:
+                {/* Card Body */}
+                <View style={styles.googleCardBody}>
+                  {/* Left Column: Choose Account Details */}
+                  <View style={styles.googleCardLeftColumn}>
+                    {/* Custom Logo (app icon/favicon) */}
+                    <Image
+                      source={require("../../assets/images/favicon.png")}
+                      style={styles.googleCardAppLogo}
+                      resizeMode="contain"
+                    />
+                    <ThemedText style={styles.googleCardHeading}>Choose an account</ThemedText>
+                    <ThemedText style={styles.googleCardSubtext}>
+                      to continue to <ThemedText style={styles.googleCardLinkText}>Smart Water Tank</ThemedText>
                     </ThemedText>
-                    <View style={[styles.googleInputWrapper, { backgroundColor: inputBg }]}>
-                      <TextInput
-                        placeholder="Google Email (e.g. john@gmail.com)"
-                        placeholderTextColor={theme.textSecondary}
-                        value={customGoogleEmail}
-                        onChangeText={setCustomGoogleEmail}
-                        style={[styles.googleInput, { color: theme.text }]}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                      />
-                    </View>
-                    <View style={[styles.googleInputWrapper, { backgroundColor: inputBg, marginTop: Spacing.two }]}>
-                      <TextInput
-                        placeholder="Full Name"
-                        placeholderTextColor={theme.textSecondary}
-                        value={customGoogleName}
-                        onChangeText={setCustomGoogleName}
-                        style={[styles.googleInput, { color: theme.text }]}
-                        autoCapitalize="words"
-                        autoCorrect={false}
-                      />
-                    </View>
-
-                    <View style={styles.customGoogleActions}>
-                      <Pressable
-                        onPress={() => setShowCustomGoogle(false)}
-                        style={({ pressed }) => [
-                          styles.googleCancelBtn,
-                          pressed && { opacity: 0.8 },
-                        ]}
-                      >
-                        <ThemedText type="smallBold" themeColor="textSecondary">
-                          Back
-                        </ThemedText>
-                      </Pressable>
-                      <Pressable
-                        onPress={handleCustomGoogleSubmit}
-                        style={({ pressed }) => [
-                          styles.googleSubmitBtn,
-                          pressed && { opacity: 0.8 },
-                        ]}
-                      >
-                        <ThemedText type="smallBold" style={{ color: "#fff" }}>
-                          Sign In
-                        </ThemedText>
-                      </Pressable>
-                    </View>
                   </View>
-                )}
 
-                <Pressable
-                  onPress={() => {
-                    setGoogleModalVisible(false);
-                    setShowCustomGoogle(false);
-                  }}
-                  style={({ pressed }) => [
-                    styles.googleCloseBtn,
-                    pressed && { opacity: 0.8 },
-                  ]}
-                >
-                  <ThemedText type="smallBold" style={{ color: "#4285F4" }}>
-                    Cancel
-                  </ThemedText>
-                </Pressable>
-              </ScrollView>
+                  {/* Right Column: Account Choices / Custom Entry Form */}
+                  <View style={styles.googleCardRightColumn}>
+                    {!showCustomGoogle ? (
+                      <View style={{ flex: 1 }}>
+                        <ScrollView style={styles.googleCardAccountsScroll} showsVerticalScrollIndicator={false}>
+                          {googleAccounts.map((acc, index) => {
+                            const isSangmo = acc.email.toLowerCase() === "sangmolama29@gmail.com";
+                            const initial = acc.name.charAt(0).toUpperCase();
+                            const avatarColors = ["#4285F4", "#34A853", "#FBBC05", "#EA4335", "#722ed1"];
+                            const avatarColor = avatarColors[index % avatarColors.length];
+
+                            return (
+                              <View key={acc.email}>
+                                <Pressable
+                                  onPress={() => handleGoogleSelect(acc.email, acc.name)}
+                                  style={({ pressed }) => [
+                                    styles.googleCardAccountRow,
+                                    pressed && { backgroundColor: "#f5f5f5" },
+                                  ]}
+                                >
+                                  {isSangmo ? (
+                                    <View style={styles.googleCardAvatarCircle}>
+                                      <SymbolView
+                                        name={{ ios: "person.crop.circle.fill", android: "account_circle", web: "account_circle" }}
+                                        size={36}
+                                        tintColor="#4285F4"
+                                      />
+                                    </View>
+                                  ) : (
+                                    <View style={[styles.googleCardAvatarCircle, { backgroundColor: avatarColor }]}>
+                                      <ThemedText style={styles.googleCardAvatarText}>{initial}</ThemedText>
+                                    </View>
+                                  )}
+                                  <View style={styles.googleCardAccountDetails}>
+                                    <ThemedText style={styles.googleCardAccountName}>{acc.name}</ThemedText>
+                                    <ThemedText style={styles.googleCardAccountEmail}>{acc.email}</ThemedText>
+                                  </View>
+                                </Pressable>
+                                <View style={styles.rowDivider} />
+                              </View>
+                            );
+                          })}
+
+                          {/* Use another account */}
+                          <Pressable
+                            onPress={() => setShowCustomGoogle(true)}
+                            style={({ pressed }) => [
+                              styles.googleCardAccountRow,
+                              pressed && { backgroundColor: "#f5f5f5" },
+                            ]}
+                          >
+                            <View style={[styles.googleCardAvatarCircle, { backgroundColor: "#f1f3f4" }]}>
+                              <SymbolView
+                                name={{ ios: "person.badge.plus", android: "person_add", web: "person_add" }}
+                                size={18}
+                                tintColor="#5f6368"
+                              />
+                            </View>
+                            <View style={styles.googleCardAccountDetails}>
+                              <ThemedText style={[styles.googleCardAccountName, { color: "#3c4043", fontWeight: "500" }]}>
+                                Use another account
+                              </ThemedText>
+                            </View>
+                          </Pressable>
+                          <View style={styles.rowDivider} />
+                        </ScrollView>
+
+                        {/* Footer Privacy Info */}
+                        <ThemedText style={styles.googleCardFooterText}>
+                          Before using this app, you can review Smart Water Tank's{" "}
+                          <ThemedText style={styles.googleCardFooterLink}>Privacy Policy</ThemedText> and{" "}
+                          <ThemedText style={styles.googleCardFooterLink}>Terms of Service</ThemedText>.
+                        </ThemedText>
+                      </View>
+                    ) : (
+                      <View style={styles.googleCardCustomForm}>
+                        <ThemedText style={styles.googleCardFormTitle}>
+                          Sign in with a different Google account
+                        </ThemedText>
+                        
+                        <View style={styles.googleCardInputWrapper}>
+                          <TextInput
+                            placeholder="Email address (e.g. john@gmail.com)"
+                            placeholderTextColor="#9aa0a6"
+                            value={customGoogleEmail}
+                            onChangeText={setCustomGoogleEmail}
+                            style={styles.googleCardTextInput}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                          />
+                        </View>
+                        
+                        <View style={[styles.googleCardInputWrapper, { marginTop: 16 }]}>
+                          <TextInput
+                            placeholder="Full name"
+                            placeholderTextColor="#9aa0a6"
+                            value={customGoogleName}
+                            onChangeText={setCustomGoogleName}
+                            style={styles.googleCardTextInput}
+                            autoCapitalize="words"
+                            autoCorrect={false}
+                          />
+                        </View>
+
+                        <View style={styles.googleCardFormActions}>
+                          <Pressable
+                            onPress={() => setShowCustomGoogle(false)}
+                            style={({ pressed }) => [
+                              styles.googleCardFormBackBtn,
+                              pressed && { opacity: 0.8 },
+                            ]}
+                          >
+                            <ThemedText style={styles.googleCardFormBackText}>Back</ThemedText>
+                          </Pressable>
+                          <Pressable
+                            onPress={handleCustomGoogleSubmit}
+                            style={({ pressed }) => [
+                              styles.googleCardFormSubmitBtn,
+                              pressed && { opacity: 0.8 },
+                            ]}
+                          >
+                            <ThemedText style={styles.googleCardFormSubmitText}>Next</ThemedText>
+                          </Pressable>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
             )}
           </View>
         </View>
@@ -744,115 +787,201 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
-  },
-  googlePanel: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderTopWidth: 1,
-    paddingTop: Spacing.four,
-    paddingBottom: Platform.select({ ios: Spacing.six, default: Spacing.four }),
-    maxHeight: "85%",
-  },
-  googlePanelContent: {
-    paddingHorizontal: Spacing.four,
-  },
-  googleHeader: {
+    justifyContent: "center",
     alignItems: "center",
-    marginBottom: Spacing.four,
+    padding: Spacing.four,
   },
-  googleLogo: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#f5f5f5",
+  googleCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#dadce0",
+    width: "100%",
+    maxWidth: Platform.OS === 'web' ? 780 : 360,
+    alignSelf: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    overflow: "hidden",
+  },
+  googleLoadingContainer: {
+    padding: Spacing.six,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: Spacing.two,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
   },
-  googleG: {
-    fontSize: 22,
+  googleCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+  googleCardHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  googleMiniLogo: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#dadce0",
+  },
+  googleMiniG: {
+    fontSize: 14,
     fontWeight: "900",
     color: "#4285F4",
   },
-  googleTitle: {
-    fontSize: 20,
-    fontWeight: "600",
+  googleCardHeaderTitle: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#3c4043",
   },
-  googleSubtitle: {
-    textAlign: "center",
-    marginTop: Spacing.one,
+  googleCardCloseBtn: {
+    padding: 4,
   },
-  googleAccountsList: {
-    gap: Spacing.two,
-    marginBottom: Spacing.four,
+  headerDivider: {
+    height: 1,
+    backgroundColor: "#dadce0",
   },
-  googleAccountItem: {
+  googleCardBody: {
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    padding: 32,
+    gap: 32,
+  },
+  googleCardLeftColumn: {
+    flex: 1,
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+    minWidth: Platform.OS === 'web' ? 260 : "100%",
+  },
+  googleCardAppLogo: {
+    width: 32,
+    height: 32,
+    marginBottom: 16,
+  },
+  googleCardHeading: {
+    fontSize: 24,
+    fontWeight: "400",
+    color: "#202124",
+    marginBottom: 8,
+  },
+  googleCardSubtext: {
+    fontSize: 14,
+    color: "#5f6368",
+  },
+  googleCardLinkText: {
+    color: "#1a73e8",
+    fontWeight: "500",
+  },
+  googleCardRightColumn: {
+    flex: 1.2,
+    justifyContent: "flex-start",
+    minWidth: Platform.OS === 'web' ? 320 : "100%",
+  },
+  googleCardAccountsScroll: {
+    maxHeight: 220,
+  },
+  googleCardAccountRow: {
     flexDirection: "row",
     alignItems: "center",
-    padding: Spacing.three,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: Spacing.three,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    gap: 12,
+    borderRadius: 4,
   },
-  avatarCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  googleCardAvatarCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
+  googleCardAvatarText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "600",
   },
-  accountInfo: {
+  googleCardAccountDetails: {
     flex: 1,
   },
-  googleCloseBtn: {
-    alignItems: "center",
-    padding: Spacing.three,
-    marginTop: Spacing.two,
+  googleCardAccountName: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#3c4043",
   },
-  googleLoadingContainer: {
-    padding: Spacing.five,
-    alignItems: "center",
+  googleCardAccountEmail: {
+    fontSize: 12,
+    color: "#5f6368",
+    marginTop: 2,
+  },
+  rowDivider: {
+    height: 1,
+    backgroundColor: "#dadce0",
+  },
+  googleCardFooterText: {
+    fontSize: 11,
+    color: "#5f6368",
+    lineHeight: 16,
+    marginTop: 20,
+  },
+  googleCardFooterLink: {
+    color: "#1a73e8",
+  },
+  googleCardCustomForm: {
+    flex: 1,
+    justifyContent: "flex-start",
+  },
+  googleCardFormTitle: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#3c4043",
+    marginBottom: 16,
+  },
+  googleCardInputWrapper: {
+    borderWidth: 1,
+    borderColor: "#dadce0",
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    height: 44,
     justifyContent: "center",
   },
-  customGoogleForm: {
-    paddingVertical: Spacing.two,
-    marginBottom: Spacing.three,
+  googleCardTextInput: {
+    fontSize: 14,
+    color: "#202124",
+    padding: 0,
   },
-  googleInputWrapper: {
-    borderRadius: 12,
-    paddingHorizontal: Spacing.three,
-    height: 48,
-    justifyContent: "center",
-  },
-  googleInput: {
-    fontSize: 15,
-  },
-  customGoogleActions: {
+  googleCardFormActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "center",
-    marginTop: Spacing.three,
-    gap: Spacing.three,
+    marginTop: 24,
+    gap: 16,
   },
-  googleCancelBtn: {
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
+  googleCardFormBackBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
   },
-  googleSubmitBtn: {
-    backgroundColor: "#4285F4",
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: 8,
+  googleCardFormBackText: {
+    color: "#1a73e8",
+    fontWeight: "500",
+    fontSize: 14,
+  },
+  googleCardFormSubmitBtn: {
+    backgroundColor: "#1a73e8",
+    paddingVertical: 8,
+    paddingHorizontal: 24,
+    borderRadius: 4,
+  },
+  googleCardFormSubmitText: {
+    color: "#ffffff",
+    fontWeight: "500",
+    fontSize: 14,
   },
 });

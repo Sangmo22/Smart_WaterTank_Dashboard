@@ -22,7 +22,7 @@
       "googleServicesFile": "./google-services.json"
     },
     "web": {
-      "output": "server",
+      "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [

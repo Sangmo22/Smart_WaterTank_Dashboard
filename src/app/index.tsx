@@ -20,6 +20,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { alertsStore } from "@/state/alerts-store";
 import { useAuth } from "@/state/auth-context";
+import { sendEmailAlertAsync, getAlertsEnabled } from "@/services/notification.service";
 
 type AlertSeverity = "info" | "warning" | "error" | "success";
 import { BottomTabInset, Spacing, Colors } from "@/constants/theme";
@@ -39,7 +40,7 @@ interface HistoryPoint {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const scheme = useColorScheme();
   const themeScheme =
     scheme === "dark" ? ("dark" as const) : ("light" as const);
@@ -97,6 +98,25 @@ export default function HomeScreen() {
         message,
         type,
       } as any);
+
+      // Trigger email alert to the logged-in user if email alerts are enabled
+      if (user?.email) {
+        (async () => {
+          try {
+            const enabled = await getAlertsEnabled();
+            if (enabled) {
+              const res = await sendEmailAlertAsync(
+                user.email,
+                `⚠️ CRITICAL ALERT: ${message}`,
+                `Smart Water Tank Monitor notification:\n\n${message}\n\nTime: ${timeStr}\n\nThis is an automated alert from your Water Tank Dashboard.`
+              );
+              console.log("[Email Alert Notification]", res.message);
+            }
+          } catch (err) {
+            console.error("Failed to trigger email alert:", err);
+          }
+        })();
+      }
     }
   };
 
@@ -198,6 +218,8 @@ export default function HomeScreen() {
       });
     }
   }, [data.sourceLevel, isLoaded]);
+
+
 
   useEffect(() => {
     if (!isLoaded || !data.lastUpdated) return;
@@ -655,6 +677,41 @@ export default function HomeScreen() {
               loading={loading}
             />
           </View>
+
+          {Platform.OS === 'web' && (
+            <button
+              onClick={async () => {
+                const res = await fetch('/api/send-low-source-alert', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ sourceLevel: 5 }),
+                });
+                const json = await res.json();
+                if (res.ok) {
+                  alert('Test alert sent! Check your email.');
+                } else {
+                  alert('Failed: ' + JSON.stringify(json));
+                }
+              }}
+              style={{
+                padding: '12px 20px',
+                backgroundColor: '#ff4d4f',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '14px',
+                marginTop: '16px',
+                marginBottom: '16px',
+                width: '100%',
+                boxShadow: '0 4px 12px rgba(255, 77, 79, 0.2)',
+                outline: 'none',
+              }}
+            >
+              Send Test Alert
+            </button>
+          )}
 
           {activeSection === "dashboard" && (
             <View

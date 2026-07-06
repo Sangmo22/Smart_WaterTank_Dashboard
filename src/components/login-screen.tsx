@@ -131,8 +131,18 @@ export function LoginScreen() {
     // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    // Save custom email to account suggestions list in AsyncStorage
-    const defaults = ["watertank.admin@gmail.com", "guest.user@gmail.com"];
+    const result = await loginWithGoogle(selectedEmail, name);
+    setGoogleLoading(false);
+
+    if (result && !result.success) {
+      setError(result.error || "Google Sign-In failed.");
+      setGoogleModalVisible(false);
+      setShowCustomGoogle(false);
+      return;
+    }
+
+    // Save custom email to account suggestions list in AsyncStorage only on successful login
+    const defaults = ["sangmolama29@gmail.com", "watertank.admin@gmail.com", "guest.user@gmail.com"];
     if (!defaults.includes(selectedEmail.toLowerCase())) {
       try {
         const savedAccountsJson = await AsyncStorage.getItem("@google_accounts_list");
@@ -146,8 +156,7 @@ export function LoginScreen() {
       }
     }
 
-    await loginWithGoogle(selectedEmail, name);
-    setGoogleLoading(false);
+    setError(null);
     setGoogleModalVisible(false);
     setShowCustomGoogle(false);
     setCustomGoogleEmail("");

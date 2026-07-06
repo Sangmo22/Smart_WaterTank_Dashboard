@@ -12,7 +12,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signup: (username: string, password: string, email: string) => Promise<{ success: boolean; error?: string }>;
-  loginWithGoogle: (email: string, username: string) => Promise<void>;
+  loginWithGoogle: (email: string, username: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
 }
 
@@ -121,6 +121,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Google authentication
   const loginWithGoogle = async (email: string, username: string) => {
     try {
+      const usersJson = await AsyncStorage.getItem(USERS_KEY);
+      const users: any[] = usersJson ? JSON.parse(usersJson) : [];
+      
+      const normalizedEmail = email.trim().toLowerCase();
+      const defaultGoogleEmails = [
+        "sangmolama29@gmail.com",
+        "watertank.admin@gmail.com",
+        "guest.user@gmail.com"
+      ];
+
+      const exists = users.some((u) => u.email.toLowerCase() === normalizedEmail) ||
+                     defaultGoogleEmails.includes(normalizedEmail);
+
+      if (!exists) {
+        return { success: false, error: "This Google account is not registered. Please sign up first." };
+      }
+
       const sessionUser: User = {
         username: username.trim(),
         email: email.trim(),
@@ -129,8 +146,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
       setUser(sessionUser);
+      return { success: true };
     } catch (err) {
       console.error("Google sign in error:", err);
+      return { success: false, error: "Something went wrong during Google Sign-In." };
     }
   };
 

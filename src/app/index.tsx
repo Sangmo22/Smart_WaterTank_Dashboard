@@ -679,38 +679,48 @@ export default function HomeScreen() {
           </View>
 
           {Platform.OS === 'web' && (
-            <button
-              onClick={async () => {
-                const res = await fetch('/api/send-low-source-alert', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ sourceLevel: 5 }),
-                });
-                const json = await res.json();
-                if (res.ok) {
-                  alert('Test alert sent! Check your email.');
-                } else {
-                  alert('Failed: ' + JSON.stringify(json));
+            <Pressable
+              onPress={async () => {
+                try {
+                  const res = await fetch('/api/send-low-source-alert', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sourceLevel: 5 }),
+                  });
+                  const json = await res.json();
+                  if (res.ok) {
+                    alert('Test alert sent! Check your email.');
+                  } else {
+                    alert('Failed: ' + JSON.stringify(json));
+                  }
+                } catch (err: any) {
+                  alert('Error: ' + err.message);
                 }
               }}
-              style={{
-                padding: '12px 20px',
-                backgroundColor: '#ff4d4f',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                fontSize: '14px',
-                marginTop: '16px',
-                marginBottom: '16px',
-                width: '100%',
-                boxShadow: '0 4px 12px rgba(255, 77, 79, 0.2)',
-                outline: 'none',
-              }}
+              style={({ pressed }) => [
+                {
+                  paddingVertical: 12,
+                  paddingHorizontal: 20,
+                  backgroundColor: '#ff4d4f',
+                  borderRadius: 8,
+                  marginTop: 16,
+                  marginBottom: 16,
+                  width: '100%',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#ff4d4f',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 12,
+                  elevation: 3,
+                },
+                pressed && { opacity: 0.8 }
+              ]}
             >
-              Send Test Alert
-            </button>
+              <ThemedText type="smallBold" style={{ color: 'white' }}>
+                Send Test Alert
+              </ThemedText>
+            </Pressable>
           )}
 
           {activeSection === "dashboard" && (

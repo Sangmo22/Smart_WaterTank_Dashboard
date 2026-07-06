@@ -58,6 +58,7 @@ export default function HomeScreen() {
 
   // Track previous warning levels to avoid redundant log spam
   const prevLevelsRef = useRef({ source: 50, overhead: 50, flowState: false });
+  const emailAlertSentRef = useRef(false);
 
   const {
     config,
@@ -219,7 +220,38 @@ export default function HomeScreen() {
     }
   }, [data.sourceLevel, isLoaded]);
 
+  useEffect(() => {
+    if (!isLoaded) return;
 
+    if (data.sourceLevel >= 5) {
+      emailAlertSentRef.current = false;
+      return;
+    }
+
+    if (emailAlertSentRef.current) return;
+    emailAlertSentRef.current = true;
+
+    if (Platform.OS === 'web') {
+      (async () => {
+        try {
+          console.log(`[Automatic Email Alert] Source level is ${data.sourceLevel}%. Sending email...`);
+          const res = await fetch('/api/send-low-source-alert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sourceLevel: data.sourceLevel }),
+          });
+          const json = await res.json();
+          if (res.ok) {
+            console.log('[Automatic Email Alert] Email sent successfully:', json);
+          } else {
+            console.error('[Automatic Email Alert] API failed:', json);
+          }
+        } catch (err) {
+          console.error('[Automatic Email Alert] Error calling API:', err);
+        }
+      })();
+    }
+  }, [data.sourceLevel, isLoaded]);
 
   useEffect(() => {
     if (!isLoaded || !data.lastUpdated) return;
@@ -678,50 +710,7 @@ export default function HomeScreen() {
             />
           </View>
 
-          {Platform.OS === 'web' && (
-            <Pressable
-              onPress={async () => {
-                try {
-                  const res = await fetch('/api/send-low-source-alert', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sourceLevel: 5 }),
-                  });
-                  const json = await res.json();
-                  if (res.ok) {
-                    alert('Test alert sent! Check your email.');
-                  } else {
-                    alert('Failed: ' + JSON.stringify(json));
-                  }
-                } catch (err: any) {
-                  alert('Error: ' + err.message);
-                }
-              }}
-              style={({ pressed }) => [
-                {
-                  paddingVertical: 12,
-                  paddingHorizontal: 20,
-                  backgroundColor: '#ff4d4f',
-                  borderRadius: 8,
-                  marginTop: 16,
-                  marginBottom: 16,
-                  width: '100%',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  shadowColor: '#ff4d4f',
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 12,
-                  elevation: 3,
-                },
-                pressed && { opacity: 0.8 }
-              ]}
-            >
-              <ThemedText type="smallBold" style={{ color: 'white' }}>
-                Send Test Alert
-              </ThemedText>
-            </Pressable>
-          )}
+
 
           {activeSection === "dashboard" && (
             <View

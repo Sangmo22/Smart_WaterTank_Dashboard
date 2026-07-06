@@ -33,9 +33,22 @@ function loadEnvFile() {
   }
 }
 
-function getConfig() {
-  loadEnvFile();
+loadEnvFile();
 
+let resendInstance = null;
+try {
+  const { Resend } = require("resend");
+  if (process.env.RESEND_API_KEY) {
+    resendInstance = new Resend(process.env.RESEND_API_KEY);
+    console.log("Resend email notifications initialized successfully in background monitor.");
+  } else {
+    console.log("Resend API key missing in background monitor. Email alerts will run in simulation mode.");
+  }
+} catch (e) {
+  console.log("Resend library not loaded or error initializing Resend:", e.message);
+}
+
+function getConfig() {
   const env = { ...DEFAULTS, ...process.env };
   return {
     expoPushToken: env.EXPO_PUSH_TOKEN,
@@ -129,17 +142,48 @@ async function sendExpoPush(config, source) {
   }
 }
 
+async function sendEmailAlertViaResend(sourceLevel) {
+  const targetEmail = process.env.ALERT_EMAIL || "sangmolama29@gmail.com";
+  
+  if (resendInstance) {
+    try {
+      console.log(`[Email Alert] Sending low source alert to ${targetEmail} via Resend...`);
+      const { data, error } = await resendInstance.emails.send({
+        from: 'Your App <onboarding@resend.dev>',
+        to: [targetEmail],
+        subject: 'Water Tank Alert: Source Low',
+        text: `Source tank level is low: ${sourceLevel}%`,
+        html: `<p>Source tank level is low: <strong>${sourceLevel}%</strong></p>`,
+      });
+
+      if (error) {
+        console.error("Resend email failed:", error);
+      } else {
+        console.log("Resend email sent successfully:", data?.id);
+      }
+    } catch (err) {
+      console.error("Error sending Resend email:", err.message);
+    }
+  } else {
+    const simulationMessage = `[SIMULATION] Email sent to ${targetEmail}\nSubject: Water Tank Alert: Source Low\nBody: Source tank level is low: ${sourceLevel}%`;
+    console.log(simulationMessage);
+  }
+}
+
 async function main() {
   const config = getConfig();
 
   if (!config.expoPushToken) {
-    throw new Error(
-      "Missing EXPO_PUSH_TOKEN. Add it to .env.local after opening the native app on your phone.",
+    console.warn(
+      "Warning: Missing EXPO_PUSH_TOKEN. Push notifications will be skipped.",
     );
   }
 
   let wasCritical = false;
   let lastSentAt = 0;
+
+  let wasEmailCritical = false;
+  let lastEmailSentAt = 0;
 
   console.log(
     `Monitoring ThingSpeak channel ${config.channelId}, field ${config.sourceField}, threshold < ${config.threshold}%`,
@@ -148,9 +192,11 @@ async function main() {
   async function tick() {
     try {
       const source = await fetchSourceLevel(config);
-      const isCritical = source.level < config.threshold;
       const now = Date.now();
-      const shouldSend =
+      
+      // 1. Check Push Notification (threshold in env/config)
+      const isCritical = source.level < config.threshold;
+      const shouldSendPush =
         isCritical &&
         (!wasCritical || now - lastSentAt >= config.reminderMs);
 
@@ -158,13 +204,26 @@ async function main() {
         `[${new Date().toLocaleString()}] Source ${source.level}% (${source.raw} raw)`,
       );
 
-      if (shouldSend) {
+      if (shouldSendPush && config.expoPushToken) {
         await sendExpoPush(config, source);
         lastSentAt = now;
         console.log("Push notification sent.");
       }
-
       wasCritical = isCritical;
+
+      // 2. Check Email Alert (Threshold is strictly < 5%)
+      const isEmailCritical = source.level < 5;
+      const shouldSendEmail =
+        isEmailCritical &&
+        (!wasEmailCritical || now - lastEmailSentAt >= config.reminderMs);
+
+      if (shouldSendEmail) {
+        await sendEmailAlertViaResend(source.level);
+        lastEmailSentAt = now;
+        console.log("Email alert processed.");
+      }
+      wasEmailCritical = isEmailCritical;
+
     } catch (error) {
       console.error(error instanceof Error ? error.message : error);
     }

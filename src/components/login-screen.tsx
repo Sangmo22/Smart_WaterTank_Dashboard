@@ -30,6 +30,8 @@ export function LoginScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Google Modal State
   const [googleModalVisible, setGoogleModalVisible] = useState(false);
@@ -278,7 +280,7 @@ export function LoginScreen() {
 
             <View style={styles.inputGroup}>
               <ThemedText type="smallBold" style={styles.inputLabel}>
-                Username or Email
+                {isSignUp ? "Username" : "Username or Email"}
               </ThemedText>
               <View style={[styles.inputWrapper, { backgroundColor: inputBg }]}>
                 <SymbolView
@@ -289,7 +291,7 @@ export function LoginScreen() {
                 <TextInput
                   value={username}
                   onChangeText={setUsername}
-                  placeholder="Enter your username"
+                  placeholder={isSignUp ? "Enter your username" : "Enter your username or email"}
                   placeholderTextColor={theme.textSecondary}
                   style={[styles.input, { color: theme.text }]}
                   autoCapitalize="none"
@@ -339,10 +341,24 @@ export function LoginScreen() {
                   placeholder="Enter your password"
                   placeholderTextColor={theme.textSecondary}
                   style={[styles.input, { color: theme.text }]}
-                  secureTextEntry
+                  secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
+                <Pressable
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={{ padding: 4 }}
+                >
+                  <SymbolView
+                    name={
+                      showPassword
+                        ? { ios: "eye.slash.fill", android: "visibility_off", web: "visibility_off" }
+                        : { ios: "eye.fill", android: "visibility", web: "visibility" }
+                    }
+                    size={20}
+                    tintColor={theme.textSecondary}
+                  />
+                </Pressable>
               </View>
             </View>
 
@@ -363,10 +379,24 @@ export function LoginScreen() {
                     placeholder="Confirm your password"
                     placeholderTextColor={theme.textSecondary}
                     style={[styles.input, { color: theme.text }]}
-                    secureTextEntry
+                    secureTextEntry={!showConfirmPassword}
                     autoCapitalize="none"
                     autoCorrect={false}
                   />
+                  <Pressable
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={{ padding: 4 }}
+                  >
+                    <SymbolView
+                      name={
+                        showConfirmPassword
+                          ? { ios: "eye.slash.fill", android: "visibility_off", web: "visibility_off" }
+                          : { ios: "eye.fill", android: "visibility", web: "visibility" }
+                      }
+                      size={20}
+                      tintColor={theme.textSecondary}
+                    />
+                  </Pressable>
                 </View>
               </View>
             )}

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_URL } from "@/constants/api";
 
 export interface User {
   username: string;
@@ -18,8 +19,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const USERS_KEY = "@auth_registered_users";
-const SESSION_KEY = "@auth_user_session";
+const TOKEN_KEY = "@auth_token";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -29,9 +29,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const session = await AsyncStorage.getItem(SESSION_KEY);
-        if (session) {
-          setUser(JSON.parse(session));
+        const token = await AsyncStorage.getItem(TOKEN_KEY);
+        if (token) {
+          // Validate token with backend
+          const res = await fetch(`${API_URL}/api/auth/me`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.user) {
+              setUser(data.user);
+            } else {
+              // Token invalid
+              await AsyncStorage.removeItem(TOKEN_KEY);
+            }
+          } else {
+            // Server error or invalid token
+            await AsyncStorage.removeItem(TOKEN_KEY);
+          }
         }
       } catch (err) {
         console.error("Failed to load auth session:", err);
@@ -44,119 +64,85 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Standard username/password login
   const login = async (username: string, password: string) => {
     try {
-      const usersJson = await AsyncStorage.getItem(USERS_KEY);
-      const users: any[] = usersJson ? JSON.parse(usersJson) : [];
-      
-      const normalizedUsername = username.trim().toLowerCase();
-      const matchedUser = users.find(
-        (u) => 
-          (u.username.toLowerCase() === normalizedUsername || u.email.toLowerCase() === normalizedUsername) &&
-          u.password === password
-      );
+      const res = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
 
-      if (!matchedUser) {
-        return { success: false, error: "Invalid username or password" };
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || "Invalid username or password" };
       }
 
-      const sessionUser: User = {
-        username: matchedUser.username,
-        email: matchedUser.email,
-        provider: "local",
-      };
-
-      await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
-      setUser(sessionUser);
+      await AsyncStorage.setItem(TOKEN_KEY, data.token);
+      setUser(data.user);
       return { success: true };
     } catch (err) {
       console.error("Login error:", err);
-      return { success: false, error: "Something went wrong during login." };
+      return { success: false, error: "Unable to connect to authentication server." };
     }
   };
 
   // Standard username/password signup
   const signup = async (username: string, password: string, email: string) => {
     try {
-      const usersJson = await AsyncStorage.getItem(USERS_KEY);
-      const users: any[] = usersJson ? JSON.parse(usersJson) : [];
+      const res = await fetch(`${API_URL}/api/auth/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password, email }),
+      });
 
-      const normalizedUsername = username.trim().toLowerCase();
-      const normalizedEmail = email.trim().toLowerCase();
+      const data = await res.json();
 
-      // Check if user already exists
-      const exists = users.some(
-        (u) => u.username.toLowerCase() === normalizedUsername || u.email.toLowerCase() === normalizedEmail
-      );
-
-      if (exists) {
-        return { success: false, error: "Username or Email already registered" };
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || "Registration failed." };
       }
 
-      // Add new user
-      const newUser = {
-        username: username.trim(),
-        email: email.trim(),
-        password,
-        provider: "local" as const,
-      };
-
-      users.push(newUser);
-      await AsyncStorage.setItem(USERS_KEY, JSON.stringify(users));
-
-      // Auto-login after registration
-      const sessionUser: User = {
-        username: newUser.username,
-        email: newUser.email,
-        provider: "local",
-      };
-
-      await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
-      setUser(sessionUser);
+      await AsyncStorage.setItem(TOKEN_KEY, data.token);
+      setUser(data.user);
       return { success: true };
     } catch (err) {
       console.error("Signup error:", err);
-      return { success: false, error: "Something went wrong during registration." };
+      return { success: false, error: "Unable to connect to authentication server." };
     }
   };
 
   // Google authentication
   const loginWithGoogle = async (email: string, username: string) => {
     try {
-      const usersJson = await AsyncStorage.getItem(USERS_KEY);
-      const users: any[] = usersJson ? JSON.parse(usersJson) : [];
-      
-      const normalizedEmail = email.trim().toLowerCase();
-      const defaultGoogleEmails = [
-        "sangmolama29@gmail.com",
-        "watertank.admin@gmail.com",
-        "guest.user@gmail.com"
-      ];
+      const res = await fetch(`${API_URL}/api/auth/google`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, name: username }),
+      });
 
-      const exists = users.some((u) => u.email.toLowerCase() === normalizedEmail) ||
-                     defaultGoogleEmails.includes(normalizedEmail);
+      const data = await res.json();
 
-      if (!exists) {
-        return { success: false, error: "This Google account is not registered. Please sign up first." };
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || "Google Sign-In failed." };
       }
 
-      const sessionUser: User = {
-        username: username.trim(),
-        email: email.trim(),
-        provider: "google",
-      };
-
-      await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
-      setUser(sessionUser);
+      await AsyncStorage.setItem(TOKEN_KEY, data.token);
+      setUser(data.user);
       return { success: true };
     } catch (err) {
       console.error("Google sign in error:", err);
-      return { success: false, error: "Something went wrong during Google Sign-In." };
+      return { success: false, error: "Unable to connect to authentication server." };
     }
   };
 
   // Logout
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem(SESSION_KEY);
+      await AsyncStorage.removeItem(TOKEN_KEY);
       setUser(null);
     } catch (err) {
       console.error("Logout error:", err);
@@ -177,3 +163,4 @@ export function useAuth() {
   }
   return context;
 }
+

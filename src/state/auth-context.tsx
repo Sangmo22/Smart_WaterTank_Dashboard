@@ -72,7 +72,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        console.error("Failed to parse JSON login response:", jsonErr);
+        return { success: false, error: `Server error (${res.status}): Please try again later.` };
+      }
 
       if (!res.ok || !data.success) {
         return { success: false, error: data.error?.message || "Invalid email or password" };
@@ -98,7 +104,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ name, password, email }),
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        console.error("Failed to parse JSON signup response:", jsonErr);
+        return { success: false, error: `Server error (${res.status}): Please try again later.` };
+      }
 
       if (!res.ok || !data.success) {
         return { success: false, error: data.error?.message || "Registration failed." };
@@ -124,7 +136,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ email, name }),
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        console.error("Failed to parse JSON google auth response:", jsonErr);
+        return { success: false, error: `Server error (${res.status}): Please try again later.` };
+      }
 
       if (!res.ok || !data.success) {
         return { success: false, error: data.error?.message || "Google Sign-In failed." };

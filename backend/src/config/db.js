@@ -5,6 +5,16 @@ let mongoServer = null;
 const connectDB = async () => {
   try {
     let mongoURI = process.env.MONGODB_URI;
+    const isServerless = process.env.VERCEL === '1' || !!process.env.NOW_REGION;
+
+    if (isServerless) {
+      if (!mongoURI) {
+        throw new Error('MONGODB_URI environment variable is missing. Please configure it in your Vercel project settings.');
+      }
+      const conn = await mongoose.connect(mongoURI);
+      console.log(`MongoDB Connected (Vercel Serverless): ${conn.connection.host}`);
+      return;
+    }
 
     // Determine if we should attempt local connection first
     const isLocal = !mongoURI || mongoURI.includes('127.0.0.1') || mongoURI.includes('localhost');
@@ -36,7 +46,11 @@ const connectDB = async () => {
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error(`MongoDB connection error: ${error.message}`);
-    process.exit(1);
+    if (process.env.VERCEL === '1' || !!process.env.NOW_REGION) {
+      throw error;
+    } else {
+      process.exit(1);
+    }
   }
 };
 

@@ -103,6 +103,14 @@ export function LoginScreen() {
       setError("Password is required");
       return;
     }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return;
+    }
+    if (isSignUp && username.trim().length < 2) {
+      setError("Username must be at least 2 characters long");
+      return;
+    }
     if (isSignUp && password !== confirmPassword) {
       setError("Passwords do not match");
       return;

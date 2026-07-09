@@ -48,7 +48,10 @@
     "web": "expo start --web",
     "build": "npx expo export -p web",
     "notify:monitor": "node ./scripts/notification-monitor.js",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "backend": "npm run --prefix backend dev",
+    "dev": "npx concurrently \"npm run backend\" \"npm run start\"",
+    "dev:web": "npx concurrently \"npm run backend\" \"npm run web\""
   },
   "private": true
 }

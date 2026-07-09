@@ -42,14 +42,19 @@ export const DEFAULT_CONFIG: ThingSpeakConfig = {
   sourceMaxRaw: 100,
   sourceInvert: false,
 
-  // Overhead Tank → Field 1 (distance sensor: lower value = more water)
+  // Overhead Tank → Field 1 (distance sensor: lower value = more water, higher = empty)
+  // Observed range: ~10 (full) to ~66 (empty)
   overheadField: 1,
-  overheadMinRaw: 10,
-  overheadMaxRaw: 30,
+  overheadMinRaw: 5,
+  overheadMaxRaw: 70,
   overheadInvert: true,
 };
 
 const STORAGE_KEY = "water_tank_dashboard_config";
+// Bump this version whenever field assignments or raw ranges change
+// so cached configs automatically pick up the new sensor defaults.
+const CONFIG_VERSION = 3;
+const CONFIG_VERSION_KEY = "water_tank_dashboard_config_version";
 
 // Helper to scale values to percentage (0 - 100)
 export const scaleValue = (
@@ -103,15 +108,51 @@ export function useThingSpeak() {
 
         if (savedConfigStr) {
           const loaded = JSON.parse(savedConfigStr) as ThingSpeakConfig;
-          setConfig(loaded);
+
+          // Check if config version matches; if not, reset field/range defaults
+          let savedVersion = 0;
+          try {
+            const vStr = Platform.OS === "web"
+              ? localStorage.getItem(CONFIG_VERSION_KEY)
+              : await AsyncStorage.getItem(CONFIG_VERSION_KEY);
+            savedVersion = vStr ? parseInt(vStr, 10) : 0;
+          } catch {}
+
+          let merged = loaded;
+          if (savedVersion < CONFIG_VERSION) {
+            // Preserve user-set channelId, readApiKey, isDemoMode, pollingIntervalMs
+            // but reset all sensor field/range values to the latest defaults
+            merged = {
+              ...loaded,
+              sourceField: DEFAULT_CONFIG.sourceField,
+              sourceMinRaw: DEFAULT_CONFIG.sourceMinRaw,
+              sourceMaxRaw: DEFAULT_CONFIG.sourceMaxRaw,
+              sourceInvert: DEFAULT_CONFIG.sourceInvert,
+              overheadField: DEFAULT_CONFIG.overheadField,
+              overheadMinRaw: DEFAULT_CONFIG.overheadMinRaw,
+              overheadMaxRaw: DEFAULT_CONFIG.overheadMaxRaw,
+              overheadInvert: DEFAULT_CONFIG.overheadInvert,
+            };
+            // Save merged config and updated version
+            const jsonStr = JSON.stringify(merged);
+            if (Platform.OS === "web") {
+              localStorage.setItem(STORAGE_KEY, jsonStr);
+              localStorage.setItem(CONFIG_VERSION_KEY, String(CONFIG_VERSION));
+            } else {
+              await AsyncStorage.setItem(STORAGE_KEY, jsonStr);
+              await AsyncStorage.setItem(CONFIG_VERSION_KEY, String(CONFIG_VERSION));
+            }
+          }
+
+          setConfig(merged);
           // Set initial simulation values from saved config min/max middle range
-          if (loaded.isDemoMode) {
+          if (merged.isDemoMode) {
             setSimulatedLevels({
               source: Math.round(
-                (loaded.sourceMaxRaw + loaded.sourceMinRaw) / 2,
+                (merged.sourceMaxRaw + merged.sourceMinRaw) / 2,
               ),
               overhead: Math.round(
-                (loaded.overheadMaxRaw + loaded.overheadMinRaw) / 2,
+                (merged.overheadMaxRaw + merged.overheadMinRaw) / 2,
               ),
             });
           }

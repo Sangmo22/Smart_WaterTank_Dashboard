@@ -54,6 +54,7 @@ export default function HomeScreen() {
   const [chartHistory, setChartHistory] = useState<HistoryPoint[]>([]);
   const [chartLayout, setChartLayout] = useState({ width: 0, height: 0 });
   const [events, setEvents] = useState<LogEvent[]>([]);
+  const [hoveredPoint, setHoveredPoint] = useState<{ x: number; y: number; source: number; overhead: number; time: number } | null>(null);
   const { expoPushToken, pushStatus, pushError } = usePushNotifications();
 
   // Track previous warning levels to avoid redundant log spam
@@ -780,72 +781,101 @@ export default function HomeScreen() {
                       );
                     })}
 
+                    {/* SVG lines connecting the dots - web only */}
+                    {Platform.OS === 'web' && (() => {
+                      const pts = chartHistory.slice(-24);
+                      if (pts.length < 2) return null;
+                      const pL = 48, pR = 18, pT = 18, pB = 28;
+                      const uW = chartLayout.width - pL - pR;
+                      const uH = chartLayout.height - pT - pB;
+                      const gx = (i: number) => pL + (uW * i) / Math.max(1, pts.length - 1);
+                      const gsy = (p: HistoryPoint) => pT + uH * (1 - p.source / 100);
+                      const goy = (p: HistoryPoint) => pT + uH * (1 - p.overhead / 100);
+                      const srcPts = pts.map((p, i) => `${gx(i)},${gsy(p)}`).join(' ');
+                      const ovhPts = pts.map((p, i) => `${gx(i)},${goy(p)}`).join(' ');
+                      // @ts-ignore
+                      return (
+                        <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+                          width={chartLayout.width} height={chartLayout.height}>
+                          <polyline points={srcPts} fill="none" stroke="#3b82f6" strokeWidth="2"
+                            strokeLinejoin="round" strokeLinecap="round" opacity="0.8" />
+                          <polyline points={ovhPts} fill="none" stroke="#14b8a6" strokeWidth="2"
+                            strokeLinejoin="round" strokeLinecap="round" opacity="0.8" />
+                        </svg>
+                      );
+                    })()}
+
                     {chartHistory.slice(-24).map((point, index, points) => {
                       const paddingLeft = 48;
                       const paddingRight = 18;
                       const paddingTop = 18;
                       const paddingBottom = 28;
-                      const usableWidth =
-                        chartLayout.width - paddingLeft - paddingRight;
-                      const usableHeight =
-                        chartLayout.height - paddingTop - paddingBottom;
-                      const x =
-                        paddingLeft +
-                        (usableWidth * index) / Math.max(1, points.length - 1);
-                      const sourceY =
-                        paddingTop + usableHeight * (1 - point.source / 100);
-                      const overheadY =
-                        paddingTop + usableHeight * (1 - point.overhead / 100);
-                      const showLabel =
-                        index === 0 ||
-                        index === points.length - 1 ||
-                        index % 4 === 0;
+                      const usableWidth = chartLayout.width - paddingLeft - paddingRight;
+                      const usableHeight = chartLayout.height - paddingTop - paddingBottom;
+                      const x = paddingLeft + (usableWidth * index) / Math.max(1, points.length - 1);
+                      const sourceY = paddingTop + usableHeight * (1 - point.source / 100);
+                      const overheadY = paddingTop + usableHeight * (1 - point.overhead / 100);
+                      const showLabel = index === 0 || index === points.length - 1 || index % 4 === 0;
 
                       return (
                         <React.Fragment key={point.time}>
+                          {/* Source dot */}
                           <View
-                            style={[
-                              styles.chartLine,
-                              {
-                                left: x - 3,
-                                top: sourceY - 3,
-                                width: 6,
-                                height: 6,
-                                borderRadius: 3,
-                                backgroundColor: "#3b82f6",
-                                transform: [{ scale: 1 }],
-                              },
-                            ]}
+                            style={[styles.chartLine, {
+                              left: x - 5, top: sourceY - 5,
+                              width: 10, height: 10, borderRadius: 5,
+                              backgroundColor: "#3b82f6",
+                              zIndex: 10,
+                              // @ts-ignore
+                              cursor: 'crosshair',
+                            }]}
+                            // @ts-ignore
+                            onMouseEnter={() => setHoveredPoint({ x, y: sourceY, source: point.source, overhead: point.overhead, time: point.time })}
+                            onMouseLeave={() => setHoveredPoint(null)}
                           />
+                          {/* Overhead dot */}
                           <View
-                            style={[
-                              styles.chartLine,
-                              {
-                                left: x - 3,
-                                top: overheadY - 3,
-                                width: 6,
-                                height: 6,
-                                borderRadius: 3,
-                                backgroundColor: "#14b8a6",
-                                transform: [{ scale: 1 }],
-                              },
-                            ]}
+                            style={[styles.chartLine, {
+                              left: x - 5, top: overheadY - 5,
+                              width: 10, height: 10, borderRadius: 5,
+                              backgroundColor: "#14b8a6",
+                              zIndex: 10,
+                              // @ts-ignore
+                              cursor: 'crosshair',
+                            }]}
+                            // @ts-ignore
+                            onMouseEnter={() => setHoveredPoint({ x, y: overheadY, source: point.source, overhead: point.overhead, time: point.time })}
+                            onMouseLeave={() => setHoveredPoint(null)}
                           />
                           {showLabel && (
-                            <ThemedText
-                              type="code"
-                              themeColor="textSecondary"
-                              style={[styles.chartXLabel, { left: x - 22 }]}
-                            >
-                              {new Date(point.time).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
+                            <ThemedText type="code" themeColor="textSecondary"
+                              style={[styles.chartXLabel, { left: x - 22 }]}>
+                              {new Date(point.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </ThemedText>
                           )}
                         </React.Fragment>
                       );
                     })}
+
+                    {/* Hover tooltip */}
+                    {hoveredPoint && (
+                      <View style={[styles.chartTooltip, {
+                        left: Math.min(hoveredPoint.x - 60, chartLayout.width - 145),
+                        top: Math.max(hoveredPoint.y - 85, 4),
+                      }]}>
+                        <ThemedText type="code" style={{ color: '#94a3b8', fontSize: 10, marginBottom: 4 }}>
+                          {new Date(hoveredPoint.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </ThemedText>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#3b82f6' }} />
+                          <ThemedText type="code" style={{ color: '#e2e8f0', fontSize: 11 }}>Source: {hoveredPoint.source}%</ThemedText>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#14b8a6' }} />
+                          <ThemedText type="code" style={{ color: '#e2e8f0', fontSize: 11 }}>Overhead: {hoveredPoint.overhead}%</ThemedText>
+                        </View>
+                      </View>
+                    )}
                   </>
                 ) : (
                   <ThemedText
@@ -1750,5 +1780,20 @@ const styles = StyleSheet.create({
   logMessage: {
     fontSize: 12,
     flex: 1,
+  },
+  chartTooltip: {
+    position: 'absolute',
+    backgroundColor: '#1e293b',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    zIndex: 100,
+    minWidth: 130,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+    gap: 2,
   },
 });

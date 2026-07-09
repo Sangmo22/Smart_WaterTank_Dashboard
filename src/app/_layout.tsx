@@ -1,11 +1,11 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
 
 SplashScreen.preventAutoHideAsync();
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Platform, View } from "react-native";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -19,6 +19,22 @@ function RootLayoutContent() {
   const colorScheme = useColorScheme();
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const { user, isLoading } = useAuth();
+  const router = useRouter();
+  const prevUserRef = useRef<typeof user>(undefined);
+
+  // Navigate to the dashboard whenever the user logs in
+  useEffect(() => {
+    if (prevUserRef.current === undefined) {
+      // First render — just record the initial value, don't navigate yet
+      prevUserRef.current = user;
+      return;
+    }
+    if (!prevUserRef.current && user) {
+      // User just signed in — push to dashboard
+      router.replace("/");
+    }
+    prevUserRef.current = user;
+  }, [user]);
 
   useEffect(() => {
     async function setup() {

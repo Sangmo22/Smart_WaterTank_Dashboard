@@ -97,9 +97,28 @@ const login = async (req, res, next) => {
   }
 };
 
+// @desc    Get current logged-in user
+// @route   GET /auth/me
+// @access  Private
+const getMe = async (req, res, next) => {
+  try {
+    res.json({
+      success: true,
+      user: {
+        id: req.user._id,
+        name: req.user.name,
+        email: req.user.email
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   register,
   login,
+  getMe,
   registerSchema,
   loginSchema
 };

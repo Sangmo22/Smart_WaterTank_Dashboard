@@ -3,9 +3,23 @@ import Constants from 'expo-constants';
 
 // Determine the local development API URL dynamically
 const getDevApiUrl = () => {
-  // If running in browser/web, use the current host (works for local network access)
+  // If running in browser/web, check if we are in production or local dev
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    return `http://${window.location.hostname}:5000`;
+    const hostname = window.location.hostname;
+    
+    // Check if we are running locally
+    const isLocalhost = hostname === 'localhost' || 
+                        hostname === '127.0.0.1' || 
+                        hostname.startsWith('192.168.') || 
+                        hostname.startsWith('10.');
+                        
+    if (!isLocalhost) {
+      // In production deployment (e.g. Vercel), frontend and backend run on the same origin
+      return window.location.origin;
+    }
+    
+    // Local web development uses port 5000 for the backend Express server
+    return `http://${hostname}:5000`;
   }
 
   // If running on a native device (Expo Go or development build),

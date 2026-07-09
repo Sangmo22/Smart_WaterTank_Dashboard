@@ -3,17 +3,17 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "@/constants/api";
 
 export interface User {
-  username: string;
+  id: string;
+  name: string;
   email: string;
-  provider: "local" | "google";
 }
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signup: (username: string, password: string, email: string) => Promise<{ success: boolean; error?: string }>;
-  loginWithGoogle: (email: string, username: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (name: string, password: string, email: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: (email: string, name: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
 }
 
@@ -61,21 +61,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
-  // Standard username/password login
-  const login = async (username: string, password: string) => {
+  // Standard email/password login
+  const login = async (email: string, password: string) => {
     try {
       const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        return { success: false, error: data.error || "Invalid username or password" };
+        return { success: false, error: data.error || "Invalid email or password" };
       }
 
       await AsyncStorage.setItem(TOKEN_KEY, data.token);
@@ -87,15 +87,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Standard username/password signup
-  const signup = async (username: string, password: string, email: string) => {
+  // Standard name/password signup
+  const signup = async (name: string, password: string, email: string) => {
     try {
-      const res = await fetch(`${API_URL}/api/auth/signup`, {
+      const res = await fetch(`${API_URL}/api/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password, email }),
+        body: JSON.stringify({ name, password, email }),
       });
 
       const data = await res.json();
@@ -114,14 +114,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Google authentication
-  const loginWithGoogle = async (email: string, username: string) => {
+  const loginWithGoogle = async (email: string, name: string) => {
     try {
       const res = await fetch(`${API_URL}/api/auth/google`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, name: username }),
+        body: JSON.stringify({ email, name }),
       });
 
       const data = await res.json();

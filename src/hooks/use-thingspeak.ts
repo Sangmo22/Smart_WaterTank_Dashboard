@@ -36,15 +36,17 @@ export const DEFAULT_CONFIG: ThingSpeakConfig = {
   isDemoMode: false,
   pollingIntervalMs: 15000,
 
-  sourceField: 1,
+  // Source Tank → Field 2
+  sourceField: 2,
   sourceMinRaw: 0,
   sourceMaxRaw: 100,
   sourceInvert: false,
 
-  overheadField: 2,
-  overheadMinRaw: 0,
-  overheadMaxRaw: 100,
-  overheadInvert: false,
+  // Overhead Tank → Field 1 (distance sensor: lower value = more water)
+  overheadField: 1,
+  overheadMinRaw: 10,
+  overheadMaxRaw: 30,
+  overheadInvert: true,
 };
 
 const STORAGE_KEY = "water_tank_dashboard_config";

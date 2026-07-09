@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        return { success: false, error: data.error || "Invalid email or password" };
+        return { success: false, error: data.error?.message || "Invalid email or password" };
       }
 
       await AsyncStorage.setItem(TOKEN_KEY, data.token);
@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        return { success: false, error: data.error || "Registration failed." };
+        return { success: false, error: data.error?.message || "Registration failed." };
       }
 
       await AsyncStorage.setItem(TOKEN_KEY, data.token);
@@ -127,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        return { success: false, error: data.error || "Google Sign-In failed." };
+        return { success: false, error: data.error?.message || "Google Sign-In failed." };
       }
 
       await AsyncStorage.setItem(TOKEN_KEY, data.token);

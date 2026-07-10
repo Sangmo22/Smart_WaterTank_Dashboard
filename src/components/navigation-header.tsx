@@ -38,7 +38,6 @@ type Props = {
 
 export function NavigationHeader({ title, subtitle }: Props) {
   const router = useRouter();
-  const { logout } = useAuth();
   const pathname = usePathname();
   const scheme = useColorScheme();
   const theme = Colors[scheme === "dark" ? "dark" : "light"];
@@ -161,40 +160,7 @@ export function NavigationHeader({ title, subtitle }: Props) {
                       {item.label}
                     </ThemedText>
                   </Pressable>
-                );
               })}
-              <View style={{ height: 1, backgroundColor: "rgba(150, 150, 150, 0.12)", marginVertical: Spacing.two }} />
-              <Pressable
-                onPress={() => {
-                  setMenuVisible(false);
-                  logout();
-                }}
-                style={({ pressed }) => [
-                  styles.drawerItem,
-                  pressed && { opacity: 0.9 },
-                ]}
-              >
-                <View style={styles.drawerItemIcon}>
-                  <SymbolView
-                    name={{
-                      ios: "rectangle.portrait.and.arrow.right",
-                      android: "logout",
-                      web: "logout",
-                    }}
-                    size={18}
-                    tintColor="#ff4d4f"
-                  />
-                </View>
-                <ThemedText
-                  type="smallBold"
-                  style={{
-                    color: "#ff4d4f",
-                    fontSize: 16,
-                  }}
-                >
-                  Logout
-                </ThemedText>
-              </Pressable>
             </View>
           </Pressable>
         </Pressable>

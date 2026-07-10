@@ -3,7 +3,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 
-const authRoutes = require('./routes/authRoutes');
 const tankRoutes = require('./routes/tankRoutes');
 const predictRoutes = require('./routes/predictRoutes');
 const alertRoutes = require('./routes/alertRoutes');
@@ -47,7 +46,6 @@ app.use(async (req, res, next) => {
 });
 
 // 5. Mount API Routes
-app.use('/api/auth', authRoutes);
 app.use('/api/tanks', tankRoutes);
 app.use('/api/predict', predictRoutes);
 app.use('/api', alertRoutes);

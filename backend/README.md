@@ -31,18 +31,15 @@ backend/
 │   │   ├── TankReading.js   # Sensor telemetry log records
 │   │   └── PumpLog.js       # Historical pump mode & switch logs
 │   ├── middleware/
-│   │   ├── auth.js          # JWT checker
+│   │   ├── auth.js          # Default user authentication handler (bypasses JWT)
 │   │   ├── validate.js      # Zod validation middleware
-│   │   ├── rateLimiter.js   # API request rate limiter
 │   │   └── errorHandler.js  # Uniform exception formatter
 │   ├── controllers/
-│   │   ├── authController.js
 │   │   ├── tankController.js
 │   │   ├── readingController.js
 │   │   ├── pumpController.js
 │   │   └── predictController.js
 │   ├── routes/
-│   │   ├── authRoutes.js
 │   │   ├── tankRoutes.js
 │   │   ├── readingRoutes.js
 │   │   ├── pumpRoutes.js
@@ -85,78 +82,55 @@ Ensure your MongoDB instance is running locally or supply a MongoDB Atlas connec
 
 ## Example API Endpoint Calls (cURL)
 
-Below are commands to test key REST paths. Replace `<token>` with the JWT returned on successful register/login.
+Below are commands to test key REST paths.
 
-### 1. Authentication
-
-#### Register a New User
-```bash
-curl -X POST http://localhost:5000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@test.com", "password":"password123", "name":"Jane Doe"}'
-```
-
-#### Log In
-```bash
-curl -X POST http://localhost:5000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@test.com", "password":"password123"}'
-```
-
-### 2. Tank Management
+### 1. Tank Management
 
 #### Create a Tank
 ```bash
 curl -X POST http://localhost:5000/api/tanks \
-  -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"name":"Main Overhead Tank", "capacityLiters":5000, "location":"Terrace Area"}'
 ```
 
 #### List My Tanks
 ```bash
-curl -X GET http://localhost:5000/api/tanks \
-  -H "Authorization: Bearer <token>"
+curl -X GET http://localhost:5000/api/tanks
 ```
 
-### 3. Sensor Telemetry
+### 2. Sensor Telemetry
 
 #### Add a Reading
 ```bash
 curl -X POST http://localhost:5000/api/tanks/<tank_id>/readings \
-  -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"overheadPercent":82.5, "sourcePercent":94.0, "pumpState":1}'
 ```
 
 #### View Paginated Readings (Filtered by Dates)
 ```bash
-curl -X GET "http://localhost:5000/api/tanks/<tank_id>/readings?page=1&limit=10&from=2026-07-01T00:00:00.000Z" \
-  -H "Authorization: Bearer <token>"
+curl -X GET "http://localhost:5000/api/tanks/<tank_id>/readings?page=1&limit=10&from=2026-07-01T00:00:00.000Z"
 ```
 
-### 4. Pump Control
+### 3. Pump Control
 
 #### View Pump Configuration
 ```bash
-curl -X GET http://localhost:5000/api/tanks/<tank_id>/pump \
-  -H "Authorization: Bearer <token>"
+curl -X GET http://localhost:5000/api/tanks/<tank_id>/pump
 ```
 
 #### Switch Pump State
 ```bash
 curl -X POST http://localhost:5000/api/tanks/<tank_id>/pump \
-  -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"state":"auto"}'
 ```
 
-### 5. AI Water Usage Forecasting
+### 4. AI Water Usage Forecasting
 
 #### Query Usage Predictor
 ```bash
 curl -X POST http://localhost:5000/api/predict/usage \
-  -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{
     "tankId": "<tank_id>",

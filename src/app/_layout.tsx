@@ -1,40 +1,19 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter } from "expo-router";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
 
 SplashScreen.preventAutoHideAsync();
 
-import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Platform, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { registerForPushNotificationsAsync } from "@/services/notification.service";
-import { AuthProvider, useAuth } from "@/state/auth-context";
-import { LoginScreen } from "@/components/login-screen";
-import { ThemedText } from "@/components/themed-text";
-import { Spacing } from "@/constants/theme";
+import { AuthProvider } from "@/state/auth-context";
 
 function RootLayoutContent() {
   const colorScheme = useColorScheme();
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
-  const { user, isLoading } = useAuth();
-  const router = useRouter();
-  const prevUserRef = useRef<typeof user>(undefined);
-
-  // Navigate to the dashboard whenever the user logs in
-  useEffect(() => {
-    if (prevUserRef.current === undefined) {
-      // First render — just record the initial value, don't navigate yet
-      prevUserRef.current = user;
-      return;
-    }
-    if (!prevUserRef.current && user) {
-      // User just signed in — push to dashboard
-      router.replace("/");
-    }
-    prevUserRef.current = user;
-  }, [user]);
 
   useEffect(() => {
     async function setup() {
@@ -75,28 +54,6 @@ function RootLayoutContent() {
 
     setup();
   }, []);
-
-  if (isLoading) {
-    const isDark = colorScheme === "dark";
-    return (
-      <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: isDark ? "#000000" : "#ffffff" }}>
-          <ActivityIndicator size="large" color="#1890ff" />
-          <ThemedText style={{ marginTop: Spacing.three }} type="smallBold">
-            Checking session...
-          </ThemedText>
-        </View>
-      </ThemeProvider>
-    );
-  }
-
-  if (!user) {
-    return (
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <LoginScreen />
-      </ThemeProvider>
-    );
-  }
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>

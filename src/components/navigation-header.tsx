@@ -160,6 +160,7 @@ export function NavigationHeader({ title, subtitle }: Props) {
                       {item.label}
                     </ThemedText>
                   </Pressable>
+                );
               })}
             </View>
           </Pressable>

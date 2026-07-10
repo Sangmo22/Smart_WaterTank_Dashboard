@@ -1296,6 +1296,7 @@ export default function HomeScreen() {
                       {item.label}
                     </ThemedText>
                   </Pressable>
+                );
               })}
             </View>
           </Pressable>

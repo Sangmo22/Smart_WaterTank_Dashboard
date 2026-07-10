@@ -35,6 +35,17 @@ if (process.env.NODE_ENV !== 'test') {
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Database connection middleware (especially for serverless deployment)
+const connectDB = require('./config/db');
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
 // 5. Mount API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/tanks', tankRoutes);

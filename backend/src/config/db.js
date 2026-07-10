@@ -3,6 +3,9 @@ const mongoose = require('mongoose');
 let mongoServer = null;
 
 const connectDB = async () => {
+  if (mongoose.connection.readyState >= 1) {
+    return mongoose.connection;
+  }
   try {
     let mongoURI = process.env.MONGODB_URI;
     const isServerless = process.env.VERCEL === '1' || !!process.env.NOW_REGION;

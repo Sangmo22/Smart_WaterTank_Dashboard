@@ -6,6 +6,7 @@ const morgan = require('morgan');
 const authRoutes = require('./routes/authRoutes');
 const tankRoutes = require('./routes/tankRoutes');
 const predictRoutes = require('./routes/predictRoutes');
+const alertRoutes = require('./routes/alertRoutes');
 
 const errorHandler = require('./middleware/errorHandler');
 const ErrorResponse = require('./utils/errorResponse');
@@ -38,6 +39,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use('/api/auth', authRoutes);
 app.use('/api/tanks', tankRoutes);
 app.use('/api/predict', predictRoutes);
+app.use('/api', alertRoutes);
 
 // Base route / Health check
 app.get('/health', (req, res) => {

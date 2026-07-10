@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { API_URL } from "@/constants/api";
 import {
   StyleSheet,
   View,
@@ -236,19 +237,20 @@ export default function HomeScreen() {
       (async () => {
         try {
           console.log(`[Automatic Email Alert] Source level is ${data.sourceLevel}%. Sending email...`);
-          const res = await fetch('/api/send-low-source-alert', {
+          const res = await fetch(`${API_URL}/api/send-low-source-alert`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sourceLevel: data.sourceLevel }),
           });
-          const json = await res.json();
           if (res.ok) {
+            const json = await res.json();
             console.log('[Automatic Email Alert] Email sent successfully:', json);
           } else {
-            console.error('[Automatic Email Alert] API failed:', json);
+            const errText = await res.text();
+            console.warn('[Automatic Email Alert] API failed:', res.status, errText);
           }
         } catch (err) {
-          console.error('[Automatic Email Alert] Error calling API:', err);
+          console.warn('[Automatic Email Alert] Error calling API:', err);
         }
       })();
     }
